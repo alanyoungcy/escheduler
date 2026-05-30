@@ -1,0 +1,18 @@
+{
+  "expo": {
+    "name": "EScheduler",
+    "slug": "escheduler",
+    "version": "0.1.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.atsolution.escheduler"
+    },
+    "extra": {
+      "apiUrl": "http://127.0.0.1:8000"
+    }
+  }
+}
+
