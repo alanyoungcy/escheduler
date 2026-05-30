@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
 from .db import get_connection
 from .models import (
@@ -56,6 +57,13 @@ app = FastAPI(
     title="EScheduler API",
     version="0.1.0",
     description="FastAPI service for employee schedule solving with OR-Tools CP-SAT.",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

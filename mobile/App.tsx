@@ -35,6 +35,7 @@ import {
   type SolveResponse,
   type StoredAssignment
 } from "./src/lib/api";
+import { beginAuth, clearSession, completeAuthFromUrl, loadStoredSession, type AuthSession } from "./src/lib/auth";
 
 const tabs = ["Schedule", "Staff", "Coverage", "Runs"] as const;
 type Tab = (typeof tabs)[number];
@@ -66,9 +67,10 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [session, setSession] = useState<AuthSession | null>(null);
 
   useEffect(() => {
-    void bootstrap();
+    void initialize();
   }, []);
 
   useEffect(() => {
@@ -110,6 +112,22 @@ export default function App() {
         assignments: assignments.sort((a, b) => a.shift_name.localeCompare(b.shift_name))
       }));
   }, [scheduleDetail]);
+
+  async function initialize() {
+    try {
+      const oauthSession = await completeAuthFromUrl();
+      const stored = oauthSession ?? loadStoredSession();
+      setSession(stored);
+      if (!stored) {
+        setLoading(false);
+        return;
+      }
+      await bootstrap();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Failed to initialize auth");
+      setLoading(false);
+    }
+  }
 
   async function bootstrap() {
     try {
@@ -251,6 +269,26 @@ export default function App() {
     );
   }
 
+  if (!session) {
+    return (
+      <SafeAreaView style={styles.loadingShell}>
+        <StatusBar style="dark" />
+        <View style={styles.authCard}>
+          <Text style={styles.authKicker}>Supabase OAuth</Text>
+          <Text style={styles.authTitle}>Manager sign-in required</Text>
+          <Text style={styles.authText}>
+            This web client uses your Supabase public auth flow before loading the schedule workspace.
+          </Text>
+          {error ? <Text style={styles.authError}>{error}</Text> : null}
+          <Pressable style={styles.authButton} onPress={() => void beginAuth()}>
+            <Ionicons name="log-in-outline" size={18} color="#fffdf7" />
+            <Text style={styles.authButtonText}>Sign in with Supabase</Text>
+          </Pressable>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.shell}>
       <StatusBar style="dark" />
@@ -258,8 +296,18 @@ export default function App() {
         <View>
           <Text style={styles.kicker}>{scheduleDetail ? `${scheduleDetail.period_start} to ${scheduleDetail.period_end}` : "No period"}</Text>
           <Text style={styles.title}>Schedule</Text>
+          <Text style={styles.userLine}>{session.user.email ?? session.user.name ?? "Signed in"}</Text>
         </View>
         <View style={styles.headerActions}>
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => {
+              clearSession();
+              setSession(null);
+            }}
+          >
+            <Ionicons name="log-out-outline" size={17} color="#12241d" />
+          </Pressable>
           <Pressable style={styles.secondaryButton} onPress={() => void handlePublish()}>
             <Ionicons name="checkmark-done" size={17} color="#12241d" />
           </Pressable>
@@ -500,6 +548,54 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "700"
   },
+  authCard: {
+    width: "88%",
+    maxWidth: 420,
+    borderWidth: 1,
+    borderColor: "#d7d1bf",
+    backgroundColor: "#fffef9",
+    borderRadius: 18,
+    padding: 20
+  },
+  authKicker: {
+    color: "#687064",
+    fontSize: 12,
+    fontWeight: "800",
+    textTransform: "uppercase"
+  },
+  authTitle: {
+    color: "#12241d",
+    fontSize: 26,
+    fontWeight: "800",
+    marginTop: 8
+  },
+  authText: {
+    color: "#4f584f",
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 10
+  },
+  authError: {
+    color: "#9d3d22",
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 10
+  },
+  authButton: {
+    marginTop: 16,
+    minHeight: 46,
+    borderRadius: 14,
+    backgroundColor: "#12241d",
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  authButtonText: {
+    color: "#fffdf7",
+    fontSize: 14,
+    fontWeight: "800"
+  },
   shell: {
     flex: 1,
     backgroundColor: "#f4f1e6"
@@ -539,6 +635,12 @@ const styles = StyleSheet.create({
     fontSize: 32,
     fontWeight: "800",
     letterSpacing: 0
+  },
+  userLine: {
+    color: "#687064",
+    fontSize: 12,
+    fontWeight: "700",
+    marginTop: 6
   },
   solveButton: {
     alignItems: "center",

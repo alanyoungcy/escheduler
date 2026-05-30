@@ -14,7 +14,7 @@ def load_env(path: Path) -> None:
         key, value = stripped.split("=", 1)
         if len(value) >= 2 and value[0] == value[-1] and value[0] in {'"', "'"}:
             value = value[1:-1]
-        os.environ.setdefault(key, value)
+        os.environ[key] = value
 
 
 def get_database_dsn() -> str:
