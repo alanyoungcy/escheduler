@@ -8,8 +8,18 @@ export type Employee = {
   skills: string[];
 };
 
+export type EmployeeCreate = {
+  name: string;
+  max_weekly_hours: number;
+  employment_type: "full_time" | "part_time" | "casual";
+};
+
 export type Skill = {
   id: string;
+  name: string;
+};
+
+export type SkillCreate = {
   name: string;
 };
 
@@ -21,11 +31,28 @@ export type ShiftTemplate = {
   hours: number;
 };
 
+export type ShiftTemplateCreate = {
+  name: string;
+  start_time: string;
+  end_time: string;
+  hours: number;
+};
+
 export type CoverageNeed = {
   date: string;
   shift_template_id: string;
   skill_id: string;
   required_count: number;
+};
+
+export type AvailabilityEntry = {
+  id?: string;
+  employee_id?: string;
+  day_of_week: number | null;
+  date: string | null;
+  start_time: string;
+  end_time: string;
+  type: "available" | "preferred" | "unavailable";
 };
 
 export type StoredAssignment = {
@@ -106,12 +133,58 @@ export function getEmployees(): Promise<Employee[]> {
   return request<Employee[]>('/employees');
 }
 
+export function createEmployee(payload: EmployeeCreate): Promise<Employee> {
+  return request<Employee>('/employees', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+}
+
+export function updateEmployee(employeeId: string, payload: EmployeeCreate): Promise<Employee> {
+  return request<Employee>(`/employees/${employeeId}`, {
+    method: 'PATCH',
+    body: JSON.stringify(payload)
+  });
+}
+
 export function getSkills(): Promise<Skill[]> {
   return request<Skill[]>('/skills');
 }
 
+export function createSkill(payload: SkillCreate): Promise<Skill> {
+  return request<Skill>('/skills', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
+}
+
+export function replaceEmployeeSkills(employeeId: string, skill_ids: string[]): Promise<Employee> {
+  return request<Employee>(`/employees/${employeeId}/skills`, {
+    method: 'POST',
+    body: JSON.stringify({ skill_ids })
+  });
+}
+
+export function getEmployeeAvailability(employeeId: string): Promise<AvailabilityEntry[]> {
+  return request<AvailabilityEntry[]>(`/employees/${employeeId}/availability`);
+}
+
+export function putEmployeeAvailability(employeeId: string, entries: AvailabilityEntry[]): Promise<AvailabilityEntry[]> {
+  return request<AvailabilityEntry[]>(`/employees/${employeeId}/availability`, {
+    method: 'PUT',
+    body: JSON.stringify(entries.map(({ id, employee_id, ...entry }) => entry))
+  });
+}
+
 export function getShiftTemplates(): Promise<ShiftTemplate[]> {
   return request<ShiftTemplate[]>('/shift-templates');
+}
+
+export function createShiftTemplate(payload: ShiftTemplateCreate): Promise<ShiftTemplate> {
+  return request<ShiftTemplate>('/shift-templates', {
+    method: 'POST',
+    body: JSON.stringify(payload)
+  });
 }
 
 export function getSchedules(): Promise<Schedule[]> {
