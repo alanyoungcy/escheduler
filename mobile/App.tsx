@@ -8,6 +8,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   View
 } from "react-native";
 
@@ -35,7 +36,7 @@ import {
   type SolveResponse,
   type StoredAssignment
 } from "./src/lib/api";
-import { beginAuth, clearSession, completeAuthFromUrl, loadStoredSession, type AuthSession } from "./src/lib/auth";
+import { clearSession, loadStoredSession, signInWithEmail, signUpWithEmail, type AuthSession } from "./src/lib/auth";
 
 const tabs = ["Schedule", "Staff", "Coverage", "Runs"] as const;
 type Tab = (typeof tabs)[number];
@@ -67,6 +68,9 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [busyAction, setBusyAction] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [authMessage, setAuthMessage] = useState<string | null>(null);
+  const [authEmail, setAuthEmail] = useState("");
+  const [authPassword, setAuthPassword] = useState("");
   const [session, setSession] = useState<AuthSession | null>(null);
 
   useEffect(() => {
@@ -115,8 +119,7 @@ export default function App() {
 
   async function initialize() {
     try {
-      const oauthSession = await completeAuthFromUrl();
-      const stored = oauthSession ?? loadStoredSession();
+      const stored = await loadStoredSession();
       setSession(stored);
       if (!stored) {
         setLoading(false);
@@ -126,6 +129,35 @@ export default function App() {
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Failed to initialize auth");
       setLoading(false);
+    }
+  }
+
+  async function handleEmailAuth(mode: "signin" | "signup") {
+    setError(null);
+    setAuthMessage(null);
+    if (!authEmail.trim() || authPassword.length < 6) {
+      setError("Enter an email and a password with at least 6 characters.");
+      return;
+    }
+    try {
+      setBusyAction(mode);
+      if (mode === "signin") {
+        const nextSession = await signInWithEmail(authEmail, authPassword);
+        setSession(nextSession);
+        await bootstrap();
+        return;
+      }
+      const result = await signUpWithEmail(authEmail, authPassword);
+      if (result.session) {
+        setSession(result.session);
+        await bootstrap();
+        return;
+      }
+      setAuthMessage(result.message ?? "Account created. Check your email before signing in.");
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : `Failed to ${mode === "signin" ? "sign in" : "create account"}`);
+    } finally {
+      setBusyAction(null);
     }
   }
 
@@ -274,15 +306,40 @@ export default function App() {
       <SafeAreaView style={styles.loadingShell}>
         <StatusBar style="dark" />
         <View style={styles.authCard}>
-          <Text style={styles.authKicker}>Supabase OAuth</Text>
+          <Text style={styles.authKicker}>Supabase Auth</Text>
           <Text style={styles.authTitle}>Manager sign-in required</Text>
           <Text style={styles.authText}>
-            This web client uses your Supabase public auth flow before loading the schedule workspace.
+            Sign in with a manager account or create one with email and password.
           </Text>
+          <TextInput
+            style={styles.authInput}
+            value={authEmail}
+            onChangeText={setAuthEmail}
+            placeholder="Email"
+            placeholderTextColor="#858b80"
+            autoCapitalize="none"
+            autoComplete="email"
+            inputMode="email"
+          />
+          <TextInput
+            style={styles.authInput}
+            value={authPassword}
+            onChangeText={setAuthPassword}
+            placeholder="Password"
+            placeholderTextColor="#858b80"
+            autoCapitalize="none"
+            autoComplete="password"
+            secureTextEntry
+          />
           {error ? <Text style={styles.authError}>{error}</Text> : null}
-          <Pressable style={styles.authButton} onPress={() => void beginAuth()}>
+          {authMessage ? <Text style={styles.authMessage}>{authMessage}</Text> : null}
+          <Pressable style={styles.authButton} onPress={() => void handleEmailAuth("signin")} disabled={busyAction === "signin" || busyAction === "signup"}>
             <Ionicons name="log-in-outline" size={18} color="#fffdf7" />
-            <Text style={styles.authButtonText}>Sign in with Supabase</Text>
+            <Text style={styles.authButtonText}>{busyAction === "signin" ? "Signing in" : "Sign in"}</Text>
+          </Pressable>
+          <Pressable style={styles.authSecondaryButton} onPress={() => void handleEmailAuth("signup")} disabled={busyAction === "signin" || busyAction === "signup"}>
+            <Ionicons name="person-add-outline" size={18} color="#12241d" />
+            <Text style={styles.authSecondaryButtonText}>{busyAction === "signup" ? "Creating account" : "Create account"}</Text>
           </Pressable>
         </View>
       </SafeAreaView>
@@ -302,7 +359,7 @@ export default function App() {
           <Pressable
             style={styles.secondaryButton}
             onPress={() => {
-              clearSession();
+              void clearSession();
               setSession(null);
             }}
           >
@@ -575,8 +632,27 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     marginTop: 10
   },
+  authInput: {
+    width: "100%",
+    minHeight: 46,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#d7d1bf",
+    backgroundColor: "#f8f5eb",
+    color: "#12241d",
+    fontSize: 14,
+    fontWeight: "700",
+    marginTop: 12,
+    paddingHorizontal: 14
+  },
   authError: {
     color: "#9d3d22",
+    fontSize: 12,
+    lineHeight: 18,
+    marginTop: 10
+  },
+  authMessage: {
+    color: "#2f6f63",
     fontSize: 12,
     lineHeight: 18,
     marginTop: 10
@@ -593,6 +669,23 @@ const styles = StyleSheet.create({
   },
   authButtonText: {
     color: "#fffdf7",
+    fontSize: 14,
+    fontWeight: "800"
+  },
+  authSecondaryButton: {
+    marginTop: 10,
+    minHeight: 46,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#cfc8b6",
+    backgroundColor: "#fffef9",
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+    justifyContent: "center"
+  },
+  authSecondaryButtonText: {
+    color: "#12241d",
     fontSize: 14,
     fontWeight: "800"
   },
