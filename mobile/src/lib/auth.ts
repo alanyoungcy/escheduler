@@ -1,9 +1,9 @@
 import "react-native-url-polyfill/auto";
 
 import { createClient, type Session } from "@supabase/supabase-js";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 
+import { authStorage } from "./authStorage";
 import { SUPABASE_KEY, SUPABASE_URL } from "./config";
 
 export type AuthSession = {
@@ -29,7 +29,7 @@ const supabase = SUPABASE_URL && SUPABASE_KEY
         autoRefreshToken: true,
         detectSessionInUrl: Platform.OS === "web",
         persistSession: true,
-        storage: Platform.OS === "web" ? undefined : AsyncStorage
+        storage: authStorage
       }
     })
   : null;
@@ -85,7 +85,7 @@ export async function signInWithEmail(email: string, password: string): Promise<
 }
 
 export async function signUpWithEmail(email: string, password: string): Promise<AuthResult> {
-  const redirectTo = typeof window === "undefined" ? undefined : window.location.origin;
+  const redirectTo = typeof window !== "undefined" && window.location?.origin ? window.location.origin : undefined;
   const { data, error } = await getSupabase().auth.signUp({
     email: email.trim(),
     password,
