@@ -1,7 +1,10 @@
-import { createClient, type Session } from "@supabase/supabase-js";
+import "react-native-url-polyfill/auto";
 
-const SUPABASE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL;
-const SUPABASE_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+import { createClient, type Session } from "@supabase/supabase-js";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Platform } from "react-native";
+
+import { SUPABASE_KEY, SUPABASE_URL } from "./config";
 
 export type AuthSession = {
   accessToken: string;
@@ -24,8 +27,9 @@ const supabase = SUPABASE_URL && SUPABASE_KEY
   ? createClient(SUPABASE_URL, SUPABASE_KEY, {
       auth: {
         autoRefreshToken: true,
-        detectSessionInUrl: true,
-        persistSession: true
+        detectSessionInUrl: Platform.OS === "web",
+        persistSession: true,
+        storage: Platform.OS === "web" ? undefined : AsyncStorage
       }
     })
   : null;

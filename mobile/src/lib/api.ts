@@ -1,3 +1,5 @@
+import { API_URL } from "./config";
+
 export type Employee = {
   id: string;
   name: string;
@@ -84,8 +86,6 @@ export type AssignmentPatch = {
   shift_template_id?: string;
   locked?: boolean;
 };
-
-const API_URL = process.env.EXPO_PUBLIC_API_URL ?? "http://127.0.0.1:8000";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${API_URL}${path}`, {

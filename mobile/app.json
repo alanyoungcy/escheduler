@@ -11,8 +11,10 @@
       "bundleIdentifier": "com.atsolution.escheduler"
     },
     "extra": {
-      "apiUrl": "http://127.0.0.1:8000"
+      "apiUrl": "https://escheduler.vercel.app",
+      "supabaseUrl": "https://fpnmilxyrklgqixplslj.supabase.co",
+      "supabaseAnonKey": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZwbm1pbHh5cmtsZ3FpeHBsc2xqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg5MjA0ODIsImV4cCI6MjA5NDQ5NjQ4Mn0.EV4PrwRCOIXrbP0bD5wEW16__sDauaK_-NQok3g-fgk",
+      "supabasePublishableKey": "sb_publishable_RY00NH3nv_IqwWhL9giJ_Q_yyNFCkod"
     }
   }
 }
-
